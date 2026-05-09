@@ -9,16 +9,16 @@ from django.contrib.auth.models import (
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, name, password=None):
+    def create_user(self, email, name, password=None, **extra_fields):
         if not email:
             raise ValueError("Email is Required")
         email = self.normalize_email(email)
-        user = self.model(email=email, name=name)
+        user = self.model(email=email, name=name, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, name, password):  # ✅ added missing method
+    def create_superuser(self, email, name, password):
         user = self.create_user(email, name, password)
         user.is_staff = True
         user.is_superuser = True

@@ -71,7 +71,9 @@ class ProductViewSet(viewsets.ModelViewSet):
     )
     def by_category(self, request, category_id=None):
         products = self.get_queryset().filter(category__id=category_id)
-        serializer = ProductListSerializer(
-            products, many=True, context={"request": request}
-        )
+        page = self.paginate_queryset(products)
+        if page is not None:
+            serializer = ProductListSerializer(page, many=True, context={"request": request})
+            return self.get_paginated_response(serializer.data)
+        serializer = ProductListSerializer(products, many=True, context={"request": request})
         return Response(serializer.data)

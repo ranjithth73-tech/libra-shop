@@ -106,7 +106,7 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
-    "ROTATE_REFRESH_TOKEN": True,
+    "ROTATE_REFRESH_TOKENS": True,
 }
 
 # CORS — set CORS_ALLOW_ALL_ORIGINS=True in .env for local dev only

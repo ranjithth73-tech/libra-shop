@@ -10,7 +10,6 @@ from .serializer import (
     PlaceOrderSerializer,
     OrderSerializer,
 )
-from products.models import Product
 
 
 class CartViewSet(viewsets.ViewSet):
@@ -39,21 +38,25 @@ class CartViewSet(viewsets.ViewSet):
             cart_item.quantity += quantity
             cart_item.save()
 
-        return Response(CartSerializer(cart).data, status=status.HTTP_200_OK)
+        response_status = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        return Response(CartSerializer(cart).data, status=response_status)
 
     @action(detail=False, methods=["patch"], url_path="update/(?P<item_id>[^/.]+)")
     def update_item(self, request, item_id=None):
         cart = self.get_or_create_cart(request.user)
         cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
-        quantity = request.data.get("quantity")
+        try:
+            quantity = int(request.data.get("quantity", 0))
+        except (TypeError, ValueError):
+            quantity = 0
 
-        if not quantity or int(quantity) < 1:
+        if quantity < 1:
             return Response(
                 {"error": "Quantity must be at least 1"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        cart_item.quantity = int(quantity)
+        cart_item.quantity = quantity
         cart_item.save()
         return Response(CartSerializer(cart).data)
 

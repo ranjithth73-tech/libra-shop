@@ -1,4 +1,4 @@
-#!/Users/tinkerspace/Desktop/e-com/libra-shop/backend/venv/bin/python3.14
+#!/Users/tinkerspace/Desktop/e-comm/libra-shop/backend/venv/bin/python3.14
 import sys
 from pip._internal.cli.main import main
 if __name__ == '__main__':
