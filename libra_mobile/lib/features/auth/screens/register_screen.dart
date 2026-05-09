@@ -46,7 +46,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       debugPrint('REGISTER SUCCESS');
 
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacementNamed(context, '/main');
       }
     } on DioException catch (e) {
       debugPrint('API ERROR: ${e.response?.data}');
@@ -59,8 +59,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
 
       if (!mounted) return;
-
-      Navigator.pushReplacementNamed(context, '/home');
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message), backgroundColor: Colors.red),

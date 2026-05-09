@@ -46,7 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (mounted) {
         // Navigate to home screen after successful login
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacementNamed(context, '/main');
       }
     } on DioException catch (e) {
       debugPrint('API ERROR status: ${e.response?.statusCode}');

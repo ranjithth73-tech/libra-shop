@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:libra_mobile/core/constants/api_constants.dart';
-import 'package:libra_mobile/core/network/dio_client.dart';
-import 'package:libra_mobile/features/products/models/product_model.dart';
-import 'package:libra_mobile/features/products/services/product_services.dart';
+import '../../../core/constants/api_constants.dart';
+import '../../../core/network/dio_client.dart';
+import '../models/product_model.dart';
+import '../services/product_services.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   // productId passed in from the home screen card tap
@@ -18,7 +18,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final _productService = ProductServices();
   ProductModel? _product;
   bool _isLoading = true;
-  bool _addingToCart = true;
+  bool _addingToCart = false;
   int _quantity = 1;
 
   @override
@@ -42,9 +42,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Future<void> _addToCart() async {
     setState(() => _addingToCart = true);
     try {
-      // Cart requires auth — use authenticatedDio which loads token from storage
-      final dio = await DioClient.authenticatedDio();
-      await dio.post(
+      await DioClient.instance.post(
         ApiConstants.cart,
         data: {'product_id': widget.productId, 'quantity': _quantity},
       );
@@ -82,12 +80,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back, color: Colors.black),
         ),
-        actions: [
-          IconButton(
-            onPressed: () => Navigator.pushNamed(context, '/cart'),
-            icon: const Icon(Icons.shopping_cart_outlined),
-          ),
-        ],
+        actions: const [],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -130,7 +123,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
-                                  _product!.categoryName!,
+                                  _product!.categoryName ?? 'Uncategorized',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey[600],
@@ -174,7 +167,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   const SizedBox(width: 4),
                                   Text(
                                     _product!.inStock
-                                        ? '${_product!.inStock} in stock'
+                                        ? '${_product!.stock} in stock'
                                         : 'Out of stock',
                                     style: TextStyle(
                                       color: _product!.inStock
@@ -278,7 +271,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     height: 52,
                     child: ElevatedButton.icon(
                       // Disable button if out of stock or already adding
-                      onPressed: _product!.inStock && _addingToCart
+                      onPressed: _product!.inStock && !_addingToCart
                           ? _addToCart
                           : null,
                       icon: _addingToCart
@@ -295,7 +288,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               color: Colors.white,
                             ),
                       label: Text(
-                        _product!.inStock ? 'Added to cart' : 'Out of stock',
+                        _product!.inStock ? 'Add to Cart' : 'Out of Stock',
                         style: const TextStyle(
                           fontSize: 16,
                           color: Colors.white,

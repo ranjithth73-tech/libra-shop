@@ -28,13 +28,13 @@ class ProductServices {
     );
 
     final results = (response.data['results'] as List)
-        .map((p) => ProductModel.formJson(p))
+        .map((p) => ProductModel.fromJson(p))
         .toList();
     return {
       'count': response.data['count'],
       'next': response.data['next'],
       'previous': response.data['previous'],
-      'result': results,
+      'results': results,
     };
   }
 
@@ -45,7 +45,7 @@ class ProductServices {
     // URL becomes: /api/products/1/
     final response = await dio.get('${ApiConstants.products}$id/');
 
-    return ProductModel.formJson(response.data);
+    return ProductModel.fromJson(response.data);
   }
 
   // Get all categories — for the filter chips
@@ -58,7 +58,7 @@ class ProductServices {
     // So we cast it directly to List and map each item
 
     return (response.data as List)
-        .map((c) => CategoryModel.formJson(c))
+        .map((c) => CategoryModel.fromJson(c))
         .toList();
   }
 }

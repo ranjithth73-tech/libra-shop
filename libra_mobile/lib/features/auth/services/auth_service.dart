@@ -61,7 +61,18 @@ class AuthService {
     return UserModel.fromJson(response.data);
   }
 
-  // Logout — clear tokens from device
+  Future<UserModel> updateProfile({
+    String? name,
+    String? phone,
+    String? address,
+  }) async {
+    final data = <String, dynamic>{};
+    if (name != null) data['name'] = name;
+    if (phone != null) data['phone'] = phone;
+    if (address != null) data['address'] = address;
+    final response = await _dio.patch(ApiConstants.profile, data: data);
+    return UserModel.fromJson(response.data);
+  }
 
   Future<void> logout() async {
     await TokenStorage.clearTokens();

@@ -2,6 +2,7 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from django.db import transaction
 from .models import Cart, CartItem, Order, OrderItem
 from .serializer import (
     CartSerializer,
@@ -11,20 +12,17 @@ from .serializer import (
 )
 from products.models import Product
 
-# Create your views here.
-
 
 class CartViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_or_create_cart(self, user):
-        cart, created = Cart.objects.get_or_create(user=user)
+        cart, _ = Cart.objects.get_or_create(user=user)
         return cart
 
     def list(self, request):
         cart = self.get_or_create_cart(request.user)
-        serializer = CartSerializer(cart)
-        return Response(serializer.data)
+        return Response(CartSerializer(cart).data)
 
     def create(self, request):
         cart = self.get_or_create_cart(request.user)
@@ -37,7 +35,6 @@ class CartViewSet(viewsets.ViewSet):
         cart_item, created = CartItem.objects.get_or_create(
             cart=cart, product=product, defaults={"quantity": quantity}
         )
-
         if not created:
             cart_item.quantity += quantity
             cart_item.save()
@@ -62,7 +59,6 @@ class CartViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["delete"], url_path="remove/(?P<item_id>[^/.]+)")
     def remove_item(self, request, item_id=None):
-
         cart = self.get_or_create_cart(request.user)
         cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
         cart_item.delete()
@@ -79,29 +75,29 @@ class OrderViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request):
-        orders = Order.objects.filter(user=request.user)
-        serializer = OrderSerializer(orders, many=True)
-        return Response(serializer.data)
+        orders = Order.objects.filter(user=request.user).prefetch_related("items")
+        return Response(OrderSerializer(orders, many=True).data)
 
     def retrieve(self, request, pk=None):
         order = get_object_or_404(Order, id=pk, user=request.user)
-        serializer = OrderSerializer(order)
-        return Response(serializer.data)
+        return Response(OrderSerializer(order).data)
 
     @action(detail=False, methods=["post"], url_path="place")
+    @transaction.atomic
     def place_order(self, request):
         serializer = PlaceOrderSerializer(
             data=request.data, context={"request": request}
         )
-
         serializer.is_valid(raise_exception=True)
 
         cart = request.user.cart
+        cart_items = list(cart.items.select_related("product").select_for_update())
 
-        for cart_item in cart.items.select_related("product"):
+        # Validate stock in a single pass
+        for cart_item in cart_items:
             if cart_item.product.stock < cart_item.quantity:
                 return Response(
-                    {"error": f"Not enough stock for {cart_item.product.name}"},
+                    {"error": f"Not enough stock for '{cart_item.product.name}'"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -111,20 +107,20 @@ class OrderViewSet(viewsets.ViewSet):
             total_price=cart.total_price,
         )
 
-        for cart_item in cart.items.select_related("product"):
-            OrderItem.objects.create(
+        # Create order items and deduct stock in one pass
+        order_items = []
+        for cart_item in cart_items:
+            order_items.append(OrderItem(
                 order=order,
                 product=cart_item.product,
                 product_name=cart_item.product.name,
                 product_price=cart_item.product.price,
                 quantity=cart_item.quantity,
-            )
+            ))
+            cart_item.product.stock -= cart_item.quantity
+            cart_item.product.save(update_fields=["stock"])
 
-        for cart_item in cart.items.select_related("product"):
-            product = cart_item.product
-            product.stock -= cart_item.quantity
-            product.save()
-
+        OrderItem.objects.bulk_create(order_items)
         cart.items.all().delete()
 
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
