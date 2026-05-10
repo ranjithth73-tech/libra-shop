@@ -49,13 +49,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
         Navigator.pushReplacementNamed(context, '/main');
       }
     } on DioException catch (e) {
-      debugPrint('API ERROR: ${e.response?.data}');
-      // final errors = e.response?.data;
+      debugPrint('API ERROR type: ${e.type}');
+      debugPrint('API ERROR message: ${e.message}');
+      debugPrint('API ERROR status: ${e.response?.statusCode}');
+      debugPrint('API ERROR data: ${e.response?.data}');
+
       String message = 'Registration failed.';
 
-      if (e.response?.data is Map) {
+      if (e.response == null) {
+        message =
+            'Could not connect to the server. Check that the backend is running and the API URL is correct.';
+      } else if (e.response?.data is Map) {
         final data = e.response!.data as Map;
-        message = data['message'] ?? message;
+        message =
+            data['message'] ??
+            data['detail'] ??
+            data.values.where((value) => value != null).join('\n');
       }
 
       if (!mounted) return;

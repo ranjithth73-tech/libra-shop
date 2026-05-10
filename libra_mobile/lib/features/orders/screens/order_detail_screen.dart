@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/order_model.dart';
 import '../services/order_service.dart';
-import 'orders_screen.dart' show _StatusBadge;
 
 class OrderDetailScreen extends StatefulWidget {
   final int orderId;
@@ -174,6 +173,25 @@ class _OrderItemRow extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w600)),
         ],
       ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  final String status;
+  final String label;
+  final Color color;
+  const _StatusBadge({required this.status, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12)),
     );
   }
 }

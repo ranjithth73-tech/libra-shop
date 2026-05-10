@@ -258,7 +258,7 @@ class _ProductCard extends StatelessWidget {
                     ? Image.network(
                         '${ApiConstants.baseUrl}${product.image}',
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                        errorBuilder: (_, _, _) => _imagePlaceholder(),
                       )
                     : _imagePlaceholder(),
               ),
