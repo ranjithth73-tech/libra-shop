@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/halo_theme.dart';
 import '../models/order_model.dart';
 import '../services/order_service.dart';
 import 'order_detail_screen.dart';
@@ -11,67 +12,97 @@ class OrdersScreen extends StatefulWidget {
 }
 
 class _OrdersScreenState extends State<OrdersScreen> {
-  final _orderService = OrderService();
+  final _service = OrderService();
   List<OrderModel> _orders = [];
-  bool _isLoading = true;
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadOrders();
+    _load();
   }
 
-  Future<void> _loadOrders() async {
-    setState(() => _isLoading = true);
+  Future<void> _load() async {
+    setState(() => _loading = true);
     try {
-      final orders = await _orderService.getOrders();
-      setState(() => _orders = orders);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load orders.'), backgroundColor: Colors.red),
-        );
-      }
+      final orders = await _service.getOrders();
+      if (mounted) setState(() => _orders = orders);
+    } catch (_) {
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: const Text('My Orders', style: TextStyle(fontWeight: FontWeight.bold)),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _orders.isEmpty
-          ? _buildEmptyState()
-          : RefreshIndicator(
-              onRefresh: _loadOrders,
-              child: ListView.builder(
-                padding: const EdgeInsets.all(12),
-                itemCount: _orders.length,
-                itemBuilder: (context, index) =>
-                    _OrderCard(order: _orders[index]),
+      backgroundColor: Halo.bg,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 40, height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: Halo.cardShadow,
+                      ),
+                      child: const Icon(Icons.arrow_back, size: 20, color: Halo.ink),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Text('Orders',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Halo.ink)),
+                ],
               ),
             ),
+
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator(color: Halo.ink, strokeWidth: 1.5))
+                  : _orders.isEmpty
+                      ? _EmptyOrders()
+                      : RefreshIndicator(
+                          onRefresh: _load,
+                          color: Halo.ink,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: _orders.length,
+                            itemBuilder: (_, i) => _OrderCard(order: _orders[i]),
+                          ),
+                        ),
+            ),
+          ],
+        ),
+      ),
     );
   }
+}
 
-  Widget _buildEmptyState() {
+class _EmptyOrders extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.receipt_long_outlined, size: 80, color: Colors.grey[400]),
-          const SizedBox(height: 16),
-          Text('No orders yet', style: TextStyle(fontSize: 18, color: Colors.grey[600])),
-          const SizedBox(height: 8),
-          Text('Your order history will appear here', style: TextStyle(color: Colors.grey[400])),
+          Container(
+            width: 80, height: 80,
+            decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: Halo.cardShadow),
+            child: const Icon(Icons.receipt_long_outlined, size: 36, color: Halo.inkMuted),
+          ),
+          const SizedBox(height: 20),
+          const Text('No orders yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Halo.ink)),
+          const SizedBox(height: 6),
+          const Text('Your order history will appear here',
+              style: TextStyle(fontSize: 14, color: Halo.inkMuted)),
         ],
       ),
     );
@@ -84,7 +115,6 @@ class _OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final date = _formatDate(order.createdAt);
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
@@ -92,85 +122,50 @@ class _OrderCard extends StatelessWidget {
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color.fromRGBO(0, 0, 0, 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          borderRadius: Halo.card,
+          boxShadow: Halo.cardShadow,
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Row(
+          children: [
+            // Gradient icon
+            Container(
+              width: 48, height: 48,
+              decoration: BoxDecoration(
+                gradient: Halo.productGradient(order.id),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Order #${order.id}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Halo.ink)),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${order.items.length} item${order.items.length == 1 ? '' : 's'} · \$${order.totalPrice.toStringAsFixed(2)}',
+                    style: const TextStyle(fontSize: 13, color: Halo.inkMuted),
+                  ),
+                  const SizedBox(height: 6),
                   _StatusBadge(status: order.status, label: order.statusLabel, color: order.statusColor),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(date, style: TextStyle(color: Colors.grey[500], fontSize: 13)),
-              const Divider(height: 20),
-              ...order.items.take(2).map((item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text('${item.quantity}× ${item.productName}',
-                              style: const TextStyle(fontSize: 13),
-                              overflow: TextOverflow.ellipsis),
-                        ),
-                        Text('₹${item.totalPrice.toStringAsFixed(2)}',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                      ],
-                    ),
-                  )),
-              if (order.items.length > 2)
-                Text('+${order.items.length - 2} more items',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 12)),
-              const Divider(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Total', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text('₹${order.totalPrice.toStringAsFixed(2)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                ],
-              ),
-            ],
-          ),
+            ),
+            const Icon(Icons.chevron_right, color: Halo.inkFaint, size: 20),
+          ],
         ),
       ),
     );
   }
-
-  String _formatDate(String iso) {
-    try {
-      final dt = DateTime.parse(iso).toLocal();
-      return '${dt.day} ${_months[dt.month - 1]} ${dt.year}';
-    } catch (_) {
-      return iso;
-    }
-  }
-
-  static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ];
 }
 
 class _StatusBadge extends StatelessWidget {
-  final String status;
-  final String label;
+  final String status, label;
   final Color color;
   const _StatusBadge({required this.status, required this.label, required this.color});
 
@@ -180,9 +175,10 @@ class _StatusBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: Halo.pill,
       ),
-      child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12)),
+      child: Text(label,
+          style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 11, letterSpacing: 0.2)),
     );
   }
 }

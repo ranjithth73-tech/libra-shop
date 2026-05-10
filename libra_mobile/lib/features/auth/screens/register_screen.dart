@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import '../../../core/theme/halo_theme.dart';
 import '../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -16,7 +17,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passCtrl = TextEditingController();
   final _authService = AuthService();
 
-  bool _isLoading = false;
+  bool _loading = false;
   bool _obscure = true;
 
   @override
@@ -28,183 +29,163 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _register() async {
-    if (!_formKey.currentState!.validate()) {
-      debugPrint('FORM VALIDATION FAILED');
-      return;
-    }
-
-    debugPrint('FORM VALID — calling API');
-
-    setState(() => _isLoading = true);
-
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _loading = true);
     try {
       await _authService.register(
         email: _emailCtrl.text.trim(),
         name: _nameCtrl.text.trim(),
         password: _passCtrl.text.trim(),
       );
-      debugPrint('REGISTER SUCCESS');
-
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/main');
-      }
+      if (mounted) Navigator.pushReplacementNamed(context, '/main');
     } on DioException catch (e) {
-      debugPrint('API ERROR type: ${e.type}');
-      debugPrint('API ERROR message: ${e.message}');
-      debugPrint('API ERROR status: ${e.response?.statusCode}');
-      debugPrint('API ERROR data: ${e.response?.data}');
-
-      String message = 'Registration failed.';
-
+      String msg = 'Registration failed.';
       if (e.response == null) {
-        message =
-            'Could not connect to the server. Check that the backend is running and the API URL is correct.';
+        msg = 'Cannot connect to server.';
       } else if (e.response?.data is Map) {
-        final data = e.response!.data as Map;
-        message =
-            data['message'] ??
-            data['detail'] ??
-            data.values.where((value) => value != null).join('\n');
+        final d = e.response!.data as Map;
+        msg = (d['message'] ?? d['detail'] ??
+            d.values.where((v) => v != null).join('\n')).toString();
       }
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(msg),
+          backgroundColor: Colors.red.shade400,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: Halo.sm),
+        ));
+      }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Create account',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 40),
-                // Name
-                TextFormField(
-                  controller: _nameCtrl,
-                  decoration: _inputDecoration(
-                    'Full Name',
-                    Icons.person_outline,
-                  ),
-                  validator: (v) =>
-                      v == null || v.isEmpty ? 'Name is required' : null,
-                ),
-                const SizedBox(height: 16),
-                // Email
-                TextFormField(
-                  controller: _emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: _inputDecoration('Email', Icons.email_outlined),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Email is required';
-                    if (!v.contains('@')) return 'Enter a valid email';
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-
-                // Password
-                TextFormField(
-                  controller: _passCtrl,
-                  obscureText: _obscure,
-                  decoration: _inputDecoration('password', Icons.lock_outline)
-                      .copyWith(
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscure ? Icons.visibility_off : Icons.visibility,
-                          ),
-                          onPressed: () => setState(() => _obscure = !_obscure),
-                        ),
-                      ),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Password is required';
-                    if (v.length < 6) return 'Minimum 6 characters';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 32),
-
-                // Register button
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _register,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            'Create Account',
-                            style: TextStyle(fontSize: 16, color: Colors.white),
-                          ),
+      resizeToAvoidBottomInset: true,
+      body: HaloBg(
+        blobs: const [
+          HaloBlob(color: Halo.lavender, dx: -0.6, dy: -0.75, r: 0.65),
+          HaloBlob(color: Halo.mint,     dx:  0.65, dy: -0.65, r: 0.60),
+          HaloBlob(color: Halo.peach,    dx:  0.50, dy:  0.55, r: 0.45),
+        ],
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Back button row
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _CircleIconButton(
+                    icon: Icons.arrow_back,
+                    onTap: () => Navigator.pop(context),
                   ),
                 ),
-
-                const SizedBox(height: 24),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Already have an account? ',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: const Text(
-                        'Login',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Create your\naccount',
+                          style: TextStyle(fontSize: 34, fontWeight: FontWeight.w700,
+                              color: Halo.ink, height: 1.1, letterSpacing: -0.5),
                         ),
-                      ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Join halo to discover pieces that last.',
+                          style: TextStyle(fontSize: 15, color: Halo.inkMuted, height: 1.5),
+                        ),
+                        const SizedBox(height: 36),
+                        HaloTextField(
+                          controller: _nameCtrl,
+                          hint: 'Full name',
+                          validator: (v) => v == null || v.isEmpty ? 'Name required' : null,
+                        ),
+                        const SizedBox(height: 14),
+                        HaloTextField(
+                          controller: _emailCtrl,
+                          hint: 'Email address',
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (v) {
+                            if (v == null || v.isEmpty) return 'Email required';
+                            if (!v.contains('@')) return 'Invalid email';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        HaloTextField(
+                          controller: _passCtrl,
+                          hint: 'Password',
+                          obscure: _obscure,
+                          suffix: IconButton(
+                            icon: Icon(
+                              _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                              color: Halo.inkMuted, size: 20,
+                            ),
+                            onPressed: () => setState(() => _obscure = !_obscure),
+                          ),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) return 'Password required';
+                            if (v.length < 6) return 'Minimum 6 characters';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 32),
+                        HaloPrimaryButton(label: 'Create Account', onTap: _register, loading: _loading),
+                        const SizedBox(height: 20),
+                        Center(
+                          child: GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: RichText(
+                              text: const TextSpan(
+                                text: 'Already have an account?  ',
+                                style: TextStyle(color: Halo.inkMuted, fontSize: 13),
+                                children: [
+                                  TextSpan(text: 'Sign in',
+                                      style: TextStyle(color: Halo.ink, fontWeight: FontWeight.w600)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+}
 
-  InputDecoration _inputDecoration(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.black, width: 2),
+class _CircleIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _CircleIconButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40, height: 40,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.80),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 20, color: Halo.ink),
       ),
     );
   }
